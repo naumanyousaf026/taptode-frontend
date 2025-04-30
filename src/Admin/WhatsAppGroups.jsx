@@ -1,8 +1,8 @@
-// WhatsAppGroups.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { Loader, Copy, Download, User, Users, Phone, AlertTriangle, Wifi, WifiOff, 
-         Send, Smartphone, Info, Clock, File, Image, Video, Mic, FileText, Link, Paperclip, X } from 'lucide-react';
+         Send, Smartphone, Info, Clock, File, Image, Video, Mic, FileText, Link, Paperclip, X, Upload, Check, List } from 'lucide-react';
 import axios from 'axios';
+import Papa from 'papaparse';
 
 const WhatsAppGroups = () => {
   const [connectedAccounts, setConnectedAccounts] = useState([]);
@@ -10,14 +10,25 @@ const WhatsAppGroups = () => {
   const [groups, setGroups] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [contacts, setContacts] = useState([]);
-  const [loading, setLoading] = useState({ accounts: false, groups: false, contacts: false, sending: false });
-  const [error, setError] = useState({ accounts: null, groups: null, contacts: null, sending: null });
+  const [loading, setLoading] = useState({ accounts: false, groups: false, contacts: false, sending: false, csv: false });
+  const [error, setError] = useState({ accounts: null, groups: null, contacts: null, sending: null, csv: null });
   const [connectionStatus, setConnectionStatus] = useState(true);
   const [message, setMessage] = useState('');
   const [customPhoneNumbers, setCustomPhoneNumbers] = useState('');
   const [sendingProgress, setSendingProgress] = useState(null);
   const [selectedContacts, setSelectedContacts] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
+  
+  // Debug state to track account selection
+  const [debug, setDebug] = useState({ selectedAccountId: null });
+
+  // CSV states
+  const [csvFile, setCsvFile] = useState(null);
+  const [csvNumbers, setCsvNumbers] = useState([]);
+  const [selectedCsvNumbers, setSelectedCsvNumbers] = useState([]);
+  const [selectAllCsv, setSelectAllCsv] = useState(false);
+  const [showCsvList, setShowCsvList] = useState(false);
+  const csvInputRef = useRef(null);
 
   // File attachment states
   const [selectedFile, setSelectedFile] = useState(null);
@@ -35,12 +46,18 @@ const WhatsAppGroups = () => {
         
         // Check the structure of the response
         if (response.data && response.data.success) {
+          // Log the accounts data for debugging
+          console.log("Fetched WhatsApp accounts:", response.data.results);
+          
           setConnectedAccounts(response.data.results || []);
           
           // If accounts are loaded, select the first one by default
           if (response.data.results && response.data.results.length > 0) {
             const firstAccount = response.data.results[0];
             setSelectedAccount(firstAccount.contact);
+            setDebug(prev => ({ ...prev, selectedAccountId: firstAccount.contact.id }));
+            
+            console.log("Selected account:", firstAccount.contact);
             
             // Set groups for the first account
             if (firstAccount.groups && firstAccount.groups.data) {
@@ -62,7 +79,7 @@ const WhatsAppGroups = () => {
             }
           }
         } else {
-          // console.error("Unexpected API response structure:", response.data);
+          console.error("Unexpected API response structure:", response.data);
           setError(prev => ({ ...prev, accounts: "Invalid API response format" }));
         }
         
@@ -85,7 +102,10 @@ const WhatsAppGroups = () => {
 
   // Handle account selection
   const handleAccountSelect = (account) => {
+    console.log("Account selected:", account);
     setSelectedAccount(account);
+    setDebug(prev => ({ ...prev, selectedAccountId: account.id }));
+    
     setSelectedGroup(null);
     setContacts([]);
     setSelectedContacts([]);
@@ -158,6 +178,13 @@ const WhatsAppGroups = () => {
     URL.revokeObjectURL(url);
   };
 
+  // Copy CSV numbers to clipboard
+  const copyCsvNumbersToClipboard = () => {
+    const phoneNumbers = csvNumbers.join('\n');
+    navigator.clipboard.writeText(phoneNumbers);
+    alert("All CSV numbers copied to clipboard!");
+  };
+
   // Handle message change
   const handleMessageChange = (e) => {
     setMessage(e.target.value);
@@ -178,12 +205,31 @@ const WhatsAppGroups = () => {
     setSelectAll(!selectAll);
   };
 
+  // Toggle selecting all CSV numbers
+  const handleSelectAllCsv = () => {
+    if (selectAllCsv) {
+      setSelectedCsvNumbers([]);
+    } else {
+      setSelectedCsvNumbers([...csvNumbers]);
+    }
+    setSelectAllCsv(!selectAllCsv);
+  };
+
   // Toggle selecting individual contact
   const handleContactSelect = (phone) => {
     if (selectedContacts.includes(phone)) {
       setSelectedContacts(selectedContacts.filter(p => p !== phone));
     } else {
       setSelectedContacts([...selectedContacts, phone]);
+    }
+  };
+
+  // Toggle selecting individual CSV number
+  const handleCsvNumberSelect = (number) => {
+    if (selectedCsvNumbers.includes(number)) {
+      setSelectedCsvNumbers(selectedCsvNumbers.filter(n => n !== number));
+    } else {
+      setSelectedCsvNumbers([...selectedCsvNumbers, number]);
     }
   };
 
@@ -203,6 +249,78 @@ const WhatsAppGroups = () => {
       } else {
         setFilePreview(null);
       }
+    }
+  };
+
+  // Handle CSV file upload
+  const handleCsvFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setLoading(prev => ({ ...prev, csv: true }));
+      setError(prev => ({ ...prev, csv: null }));
+      setCsvFile(file);
+      setCsvNumbers([]);
+      setSelectedCsvNumbers([]);
+      setSelectAllCsv(false);
+      
+      // Parse the CSV file
+      Papa.parse(file, {
+        header: false,
+        skipEmptyLines: true,
+        complete: (results) => {
+          // Extract phone numbers from the parsed data
+          const phoneNumbers = [];
+          
+          results.data.forEach(row => {
+            // Check if row is an array or object (depends on if header option is true/false)
+            if (Array.isArray(row)) {
+              // Take first column as phone number
+              if (row[0] && typeof row[0] === 'string' && row[0].trim()) {
+                phoneNumbers.push(row[0].trim());
+              }
+            } else if (typeof row === 'object') {
+              // Try to find a column that might contain phone numbers
+              const firstValue = Object.values(row)[0];
+              if (firstValue && typeof firstValue === 'string' && firstValue.trim()) {
+                phoneNumbers.push(firstValue.trim());
+              }
+            }
+          });
+          
+          setCsvNumbers(phoneNumbers);
+          setShowCsvList(true);
+          setLoading(prev => ({ ...prev, csv: false }));
+        },
+        error: (error) => {
+          console.error('CSV parsing error:', error);
+          setError(prev => ({ ...prev, csv: error.message || 'Failed to parse CSV file' }));
+          setLoading(prev => ({ ...prev, csv: false }));
+        }
+      });
+    }
+  };
+
+  // Handle CSV file removal
+  const handleRemoveCsvFile = () => {
+    setCsvFile(null);
+    setCsvNumbers([]);
+    setSelectedCsvNumbers([]);
+    setSelectAllCsv(false);
+    setShowCsvList(false);
+    if (csvInputRef.current) {
+      csvInputRef.current.value = null;
+    }
+  };
+
+  // Toggle CSV list visibility
+  const toggleCsvList = () => {
+    setShowCsvList(!showCsvList);
+  };
+
+  // Trigger CSV file input click
+  const handleCsvUploadClick = () => {
+    if (csvInputRef.current) {
+      csvInputRef.current.click();
     }
   };
 
@@ -250,25 +368,44 @@ const WhatsAppGroups = () => {
     return `${(sizeInBytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  // Send message function
+  // Send message function - UPDATED with enhanced debugging
   const handleSendMessage = async () => {
     if (!message.trim() && !selectedFile) {
       alert("Please enter a message or attach a file");
       return;
     }
 
+    if (!selectedAccount) {
+      alert("Please select a WhatsApp account first");
+      return;
+    }
+
+    console.log("Preparing to send message from account:", selectedAccount);
+
     // Determine recipients
     let recipients = [...selectedContacts];
     
+    // Add selected CSV numbers to recipients
+    if (selectedCsvNumbers.length > 0) {
+      recipients = [...recipients, ...selectedCsvNumbers];
+    }
+    
     // If no specific contacts are selected but a group is selected, use all contacts
-    if (selectedGroup && recipients.length === 0 && contacts.length > 0) {
+    if (selectedGroup && recipients.length === 0 && contacts.length > 0 && selectedCsvNumbers.length === 0) {
       recipients = contacts.map(contact => contact.phone);
     }
     
+    // If no CSV numbers are specifically selected but we have CSV numbers, use all of them
+    if (selectedCsvNumbers.length === 0 && csvNumbers.length > 0) {
+      recipients = [...recipients, ...csvNumbers];
+    }
+    
     if (recipients.length === 0 && !customPhoneNumbers.trim()) {
-      alert("Please select contacts or enter custom phone numbers");
+      alert("Please select contacts, upload a CSV file, or enter custom phone numbers");
       return;
     }
+
+    console.log("Recipients count:", recipients.length);
     
     setLoading(prev => ({ ...prev, sending: true }));
     setError(prev => ({ ...prev, sending: null }));
@@ -278,49 +415,73 @@ const WhatsAppGroups = () => {
       // Create form data for API call
       const formData = new FormData();
       formData.append('message', message);
-      formData.append('contactId', selectedAccount?.id);
+      
+      // Ensure contactId is correctly set - this is the critical part
+      console.log("Setting contactId in formData:", selectedAccount.id);
+      formData.append('contactId', selectedAccount.id);
       
       // Add recipients
       if (recipients.length > 0) {
-        // Because FormData doesn't handle arrays well, we need to stringify or append each
+        console.log("Adding recipients to formData:", recipients);
         formData.append('recipients', JSON.stringify(recipients));
       }
       
       // Add custom numbers
       if (customPhoneNumbers.trim()) {
+        console.log("Adding custom numbers to formData:", customPhoneNumbers);
         formData.append('customNumbers', customPhoneNumbers);
       }
       
       // Add file if selected
       if (selectedFile) {
+        console.log("Adding file to formData:", selectedFile.name);
         formData.append('file', selectedFile);
+      }
+
+      // Log all form data for debugging
+      for (let [key, value] of formData.entries()) {
+        console.log(`FormData entry - ${key}:`, value);
       }
       
       // Make API call
+      console.log("Sending API request to /api/whatsapp/send");
       const response = await axios.post('http://localhost:5000/api/whatsapp/send', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
       
+      console.log("API response:", response.data);
+      
       // Handle successful response
       if (response.data && response.data.success) {
         setSendingProgress({
-          totalRecipients: response.data.totalRecipients,
-          batchCount: response.data.batchCount,
-          batchSize: response.data.batchSize,
+          totalRecipients: response.data.totalRecipients || response.data.total,
+          batchCount: response.data.batchCount || Math.ceil(response.data.total / 10),
+          batchSize: response.data.batchSize || 10,
           status: 'in_progress',
           startTime: new Date(),
-          messageType: response.data.messageType || 'text'
+          messageType: response.data.messageType || 'text',
+          sentFrom: response.data.sentFrom // Add the account that sent the message
         });
+        
+        alert(`Message sending initiated from account: ${response.data.sentFrom}`);
         
         // Clear the form
         setCustomPhoneNumbers('');
         setMessage('');
         setSelectedFile(null);
         setFilePreview(null);
+        setCsvFile(null);
+        setCsvNumbers([]);
+        setSelectedCsvNumbers([]);
+        setSelectAllCsv(false);
+        setShowCsvList(false);
         if (fileInputRef.current) {
           fileInputRef.current.value = null;
+        }
+        if (csvInputRef.current) {
+          csvInputRef.current.value = null;
         }
       } else {
         throw new Error("API returned unsuccessful response");
@@ -371,7 +532,7 @@ const WhatsAppGroups = () => {
         </div>
       </div>
 
-      {/* Account Selection */}
+      {/* Account Selection - UPDATED with more visibility */}
       <div className="mb-6 bg-white rounded-lg shadow p-4">
         <div className="flex items-center gap-2 mb-4">
           <Smartphone className="w-5 h-5" />
@@ -406,16 +567,32 @@ const WhatsAppGroups = () => {
                 onClick={() => handleAccountSelect(account.contact)}
               >
                 <div className="flex items-center gap-2">
-                  <div className="bg-blue-100 rounded-full p-2">
-                    <User className="w-5 h-5 text-blue-600" />
+                  <div className={`rounded-full p-2 ${selectedAccount?.id === account.contact.id ? 'bg-blue-500 text-white' : 'bg-blue-100 text-blue-600'}`}>
+                    <User className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-medium">{account.contact.name || "Unnamed"}</h3>
-                    <p className="text-sm text-gray-500">{account.contact.id}</p>
+                    <h3 className="font-medium">{account.contact.name || account.contact.whatsappId || "Unnamed"}</h3>
+                    <p className="text-xs text-gray-500">{account.contact.whatsappId}</p>
+                    <p className="text-xs text-gray-500">ID: {account.contact.id}</p>
+                    <p className="text-xs text-gray-400">Unique ID: {account.contact.uniqueId}</p>
                   </div>
                 </div>
               </div>
             ))}
+          </div>
+        )}
+        
+        {/* Display selected account info more prominently */}
+        {selectedAccount && (
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="font-medium">Messages will be sent from:</p>
+            <div className="flex items-center mt-1">
+              <Smartphone className="w-5 h-5 text-blue-500 mr-2" />
+              <div>
+                <p className="font-bold">{selectedAccount.whatsappId || "Unknown Number"}</p>
+                <p className="text-sm text-gray-600">Account ID: {selectedAccount.id}</p>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -459,7 +636,7 @@ const WhatsAppGroups = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-medium">{group.name || "Unnamed Group"}</h3>
-                      <p className="text-xs text-gray-500 truncate">{group.gid}</p>
+                      <p className="text-xs text-gray-500 truncate max-w-40">{group.gid}</p>
                     </div>
                     {group.size && (
                       <div className="bg-gray-100 text-gray-600 text-xs rounded-full px-2 py-1">
@@ -555,7 +732,8 @@ const WhatsAppGroups = () => {
                   </div>
                 ))}
               </div>
-            </div>
+            </div>  
+          
           )}
         </div>
 
@@ -566,179 +744,275 @@ const WhatsAppGroups = () => {
             <h2 className="text-xl font-semibold">Send Message</h2>
           </div>
 
-          {!selectedAccount ? (
-            <div className="text-center p-4 text-gray-500">
-              Please select an account to send messages.
-            </div>
-          ) : (
-            <div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Message
-                </label>
-                <textarea
-                  className="w-full border border-gray-300 rounded-md p-2 min-h-32"
-                  placeholder="Type your message here..."
-                  value={message}
-                  onChange={handleMessageChange}
-                  disabled={loading.sending}
-                ></textarea>
-              </div>
+          {/* Message input */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Message
+            </label>
+            <textarea
+              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y"
+              rows="4"
+              placeholder="Type your message here..."
+              value={message}
+              onChange={handleMessageChange}
+            ></textarea>
+          </div>
 
-              {/* File Attachment */}
-              <div className="mb-4">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  className="hidden"
-                  disabled={loading.sending}
-                />
-                {!selectedFile ? (
-                  <button
-                    type="button"
-                    onClick={handleAttachClick}
-                    disabled={loading.sending}
-                    className="flex items-center text-gray-600 border border-gray-300 rounded-md py-2 px-4 hover:bg-gray-50"
-                  >
-                    <Paperclip className="w-4 h-4 mr-2" />
-                    Attach File
-                  </button>
-                ) : (
-                  <div className="border border-gray-300 rounded-md p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center">
-                        {getFileIcon(selectedFile)}
-                        <div className="ml-2">
-                          <p className="font-medium text-sm truncate max-w-40">
-                            {selectedFile.name}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {getFileSize(selectedFile)}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleRemoveFile}
-                        className="text-gray-400 hover:text-red-500"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                    {filePreview && (
-                      <div className="mt-2">
-                        <img
-                          src={filePreview}
-                          alt="Preview"
-                          className="max-h-32 rounded-md mx-auto"
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Add Custom Numbers (one per line, with country code)
-                </label>
-                <textarea
-                  className="w-full border border-gray-300 rounded-md p-2 h-20"
-                  placeholder="Examples:
-+1234567890
-+9876543210"
-                  value={customPhoneNumbers}
-                  onChange={handleCustomPhoneNumbersChange}
-                  disabled={loading.sending}
-                ></textarea>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Recipients Summary
-                </label>
-                <div className="text-sm bg-gray-50 p-3 rounded-md">
-                  <div className="flex items-center mb-1">
-                    <Users className="w-4 h-4 mr-1 text-gray-500" />
-                    <span className="text-gray-800 font-medium">Selected contacts:</span>
-                    <span className="ml-1">{selectedContacts.length}</span>
-                  </div>
-                  
+          {/* File attachment */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Attachment
+            </label>
+            <input
+              type="file"
+              onChange={handleFileChange}
+              className="hidden"
+              ref={fileInputRef}
+            />
+            
+            {selectedFile ? (
+              <div className="border border-gray-300 rounded-lg p-3">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <Phone className="w-4 h-4 mr-1 text-gray-500" />
-                    <span className="text-gray-800 font-medium">Custom numbers:</span>
-                    <span className="ml-1">
-                      {customPhoneNumbers.trim() ? customPhoneNumbers.trim().split('\n').length : 0}
-                    </span>
+                    {getFileIcon(selectedFile)}
+                    <div className="ml-2">
+                      <p className="font-medium truncate max-w-40">{selectedFile.name}</p>
+                      <p className="text-xs text-gray-500">{getFileSize(selectedFile)}</p>
+                    </div>
                   </div>
+                  <button 
+                    onClick={handleRemoveFile}
+                    className="text-gray-500 hover:text-red-500"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleSendMessage}
-                disabled={loading.sending || (!selectedGroup && !customPhoneNumbers.trim())}
-                className={`w-full flex items-center justify-center py-2 px-4 rounded-md ${
-                  loading.sending || (!selectedGroup && !customPhoneNumbers.trim())
-                    ? 'bg-gray-300 cursor-not-allowed'
-                    : 'bg-blue-500 hover:bg-blue-600 text-white'
-                }`}
-              >
-                {loading.sending ? (
-                  <>
-                    <Loader className="w-4 h-4 animate-spin mr-2" />
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4 mr-2" />
-                    Send Message
-                  </>
+                {filePreview && (
+                  <div className="mt-2">
+                    <img 
+                      src={filePreview} 
+                      alt="Preview" 
+                      className="max-h-32 rounded-lg"
+                    />
+                  </div>
                 )}
+              </div>
+            ) : (
+              <button
+                onClick={handleAttachClick}
+                className="w-full flex items-center justify-center gap-2 border border-gray-300 border-dashed rounded-lg p-3 hover:bg-gray-50 transition-colors duration-150"
+              >
+                <Paperclip className="w-5 h-5 text-gray-500" />
+                <span className="text-gray-700">Attach a file</span>
               </button>
+            )}
+          </div>
 
-              {/* Progress Display */}
-              {sendingProgress && (
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-md">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Info className="w-4 h-4 text-blue-500" />
-                    <h4 className="font-medium text-blue-800">Sending in Progress</h4>
+          {/* CSV Upload */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Upload CSV with Phone Numbers
+            </label>
+            <input
+              type="file"
+              accept=".csv"
+              onChange={handleCsvFileChange}
+              className="hidden"
+              ref={csvInputRef}
+            />
+            
+            {csvFile ? (
+              <div className="border border-gray-300 rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <FileText className="w-5 h-5" />
+                    <div className="ml-2">
+                      <p className="font-medium truncate max-w-40">{csvFile.name}</p>
+                      <p className="text-xs text-gray-500">{csvNumbers.length} numbers</p>
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-600">
-                    <div className="flex items-center mb-1">
-                      <span className="font-medium mr-1">Total recipients:</span>
-                      <span>{sendingProgress.totalRecipients}</span>
-                    </div>
-                    <div className="flex items-center mb-1">
-                      <span className="font-medium mr-1">Batch count:</span>
-                      <span>{sendingProgress.batchCount}</span>
-                    </div>
-                    <div className="flex items-center mb-1">
-                      <span className="font-medium mr-1">Batch size:</span>
-                      <span>{sendingProgress.batchSize}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <Clock className="w-4 h-4 mr-1 text-blue-500" />
-                      <span className="font-medium mr-1">Estimated completion:</span>
-                      <span>{calculateETA(sendingProgress)}</span>
-                    </div>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={toggleCsvList}
+                      className="text-blue-500 hover:text-blue-600"
+                    >
+                      <List className="w-5 h-5" />
+                    </button>
+                    <button 
+                      onClick={handleRemoveCsvFile}
+                      className="text-gray-500 hover:text-red-500"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
                   </div>
                 </div>
-              )}
-
-              {error.sending && (
-                <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-md">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-red-500" />
-                    <span className="text-red-700">{error.sending}</span>
+                
+                {showCsvList && csvNumbers.length > 0 && (
+                  <div className="mt-3 border-t pt-2">
+                    <div className="mb-2 flex items-center">
+                      <input
+                        type="checkbox"
+                        id="selectAllCsv"
+                        checked={selectAllCsv}
+                        onChange={handleSelectAllCsv}
+                        className="mr-2"
+                      />
+                      <label htmlFor="selectAllCsv" className="text-sm">Select All</label>
+                      {selectedCsvNumbers.length > 0 && (
+                        <span className="ml-2 text-xs text-blue-500">
+                          ({selectedCsvNumbers.length} selected)
+                        </span>
+                      )}
+                      {csvNumbers.length > 0 && (
+                        <button
+                          className="ml-auto text-blue-500 hover:text-blue-600 flex items-center text-xs"
+                          onClick={copyCsvNumbersToClipboard}
+                        >
+                          <Copy className="w-3 h-3 mr-1" /> Copy All
+                        </button>
+                      )}
+                    </div>
+                    <div className="overflow-y-auto max-h-32">
+                      {csvNumbers.map((number, index) => (
+                        <div 
+                          key={index}
+                          className="flex items-center border-b last:border-b-0 py-1"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedCsvNumbers.includes(number)}
+                            onChange={() => handleCsvNumberSelect(number)}
+                            className="mr-2"
+                          />
+                          <span className="text-sm">{number}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={handleCsvUploadClick}
+                className="w-full flex items-center justify-center gap-2 border border-gray-300 border-dashed rounded-lg p-3 hover:bg-gray-50 transition-colors duration-150"
+              >
+                <Upload className="w-5 h-5 text-gray-500" />
+                <span className="text-gray-700">Upload CSV</span>
+              </button>
+            )}
+          </div>
+
+          {/* Custom Phone Numbers */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Custom Phone Numbers (one per line)
+            </label>
+            <textarea
+              className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y"
+              rows="3"
+              placeholder="Enter phone numbers, one per line"
+              value={customPhoneNumbers}
+              onChange={handleCustomPhoneNumbersChange}
+            ></textarea>
+          </div>
+
+          {/* Send Button */}
+          <button
+            onClick={handleSendMessage}
+            disabled={loading.sending || (!message.trim() && !selectedFile) || (!selectedContacts.length && !customPhoneNumbers.trim() && !selectedCsvNumbers.length && !csvNumbers.length)}
+            className={`w-full bg-blue-500 text-white rounded-lg py-3 px-4 flex items-center justify-center gap-2 ${
+              loading.sending || (!message.trim() && !selectedFile) || (!selectedContacts.length && !customPhoneNumbers.trim() && !selectedCsvNumbers.length && !csvNumbers.length)
+                ? 'opacity-50 cursor-not-allowed'
+                : 'hover:bg-blue-600'
+            }`}
+          >
+            {loading.sending ? (
+              <>
+                <Loader className="w-5 h-5 animate-spin" />
+                <span>Sending...</span>
+              </>
+            ) : (
+              <>
+                <Send className="w-5 h-5" />
+                <span>Send Message</span>
+              </>
+            )}
+          </button>
+
+          {/* Display error message if any */}
+          {error.sending && (
+            <div className="mt-2 p-2 bg-red-50 text-red-500 rounded-lg flex items-center">
+              <AlertTriangle className="w-5 h-5 mr-2" />
+              <span>{error.sending}</span>
             </div>
           )}
         </div>
       </div>
+
+      {/* Sending Progress */}
+      {sendingProgress && (
+        <div className="mt-6 bg-white rounded-lg shadow p-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Clock className="w-5 h-5" />
+            <h2 className="text-xl font-semibold">Message Sending Progress</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="border border-gray-200 rounded-lg p-3">
+              <p className="text-sm text-gray-500">Recipients</p>
+              <p className="text-lg font-bold">{sendingProgress.totalRecipients}</p>
+            </div>
+            
+            <div className="border border-gray-200 rounded-lg p-3">
+              <p className="text-sm text-gray-500">Batch Count</p>
+              <p className="text-lg font-bold">{sendingProgress.batchCount}</p>
+              <p className="text-xs text-gray-400">{sendingProgress.batchSize} per batch</p>
+            </div>
+            
+            <div className="border border-gray-200 rounded-lg p-3">
+              <p className="text-sm text-gray-500">Estimated Time</p>
+              <p className="text-lg font-bold">{calculateETA(sendingProgress)}</p>
+            </div>
+          </div>
+          
+          <div className="mt-4 p-3 border border-blue-100 rounded-lg bg-blue-50">
+            <div className="flex items-center">
+              <Info className="w-5 h-5 text-blue-500 mr-2" />
+              <div>
+                <p className="font-medium text-blue-600">
+                  Message sending is in progress
+                </p>
+                <p className="text-sm text-blue-500 mt-1">
+                  You can navigate away from this page. Messages will continue to be sent in batches to avoid WhatsApp rate limits.
+                </p>
+                {sendingProgress.sentFrom && (
+                  <p className="text-sm text-blue-500 mt-1">
+                    Sending from: {sendingProgress.sentFrom}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Debug Info (for development only) */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="mt-6 p-4 bg-gray-100 rounded-lg">
+          <h3 className="font-semibold mb-2">Debug Info</h3>
+          <pre className="text-xs overflow-auto p-2 bg-gray-800 text-white rounded-lg">
+            {JSON.stringify({
+              selectedAccountId: debug.selectedAccountId,
+              selectedGroup: selectedGroup?.gid,
+              connectionStatus,
+              contactsCount: contacts.length,
+              selectedContacts: selectedContacts.length,
+              csvNumbersCount: csvNumbers.length,
+              selectedCsvNumbers: selectedCsvNumbers.length,
+            }, null, 2)}
+          </pre>
+        </div>
+      )}
     </div>
   );
 };
