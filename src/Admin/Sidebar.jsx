@@ -5,7 +5,7 @@ import { FaRegUser } from "react-icons/fa";
 import { TbSettings2 } from "react-icons/tb";
 import { FiLogOut } from "react-icons/fi";
 import { FaMoon, FaSun } from "react-icons/fa";
-
+import { FaClipboardList } from "react-icons/fa";
 const Sidebar = ({ darkMode, toggleDarkMode, setSection }) => {
   return (
     <aside
@@ -35,10 +35,15 @@ const Sidebar = ({ darkMode, toggleDarkMode, setSection }) => {
         className="text-3xl text-gray-500 cursor-pointer transform transition-transform duration-300 hover:rotate-12"
         onClick={() => setSection('user')}
       />
+  <FaClipboardList
+  className="text-3xl text-gray-500 cursor-pointer transform transition-transform duration-300 hover:rotate-12"
+  onClick={() => setSection('subscriptions')}
+/>
       <TbSettings2
         className="text-3xl text-gray-500 cursor-pointer transform transition-transform duration-300 hover:rotate-12"
         onClick={() => setSection('setting')}
       />
+      
       <button
         onClick={toggleDarkMode}
         className="text-3xl transform transition-transform duration-300 hover:scale-125"

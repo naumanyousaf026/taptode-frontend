@@ -6,7 +6,7 @@ import User from './User';
 import TeamList from './TeamList';
 import SettingsPage from './Setting';
 import WhatsAppGroups from './WhatsAppGroups';
-
+import SubscriptionsDetails from './SubscriptionsDetails';
 const Layout = () => {
   const [section, setSection] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -38,6 +38,7 @@ const Layout = () => {
           {section === 'setting' && <SettingsPage />}
           {section === 'account' && <TeamList />}
           {section === 'whatsapp' && <WhatsAppGroups />}
+          {section === 'subscriptions' && <SubscriptionsDetails />}
         </div>
       </div>
     </div>

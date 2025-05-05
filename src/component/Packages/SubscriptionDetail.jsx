@@ -20,7 +20,7 @@ const SubscriptionDetail = () => {
     try {
       const response = await axios.get(`http://localhost:5000/api/subscription/${subscriptionId}`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`
         }
       });
 
@@ -70,7 +70,7 @@ const SubscriptionDetail = () => {
     try {
       const response = await axios.post("http://localhost:5000/api/upload-numbers", formData, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
           "Content-Type": "multipart/form-data"
         }
       });
@@ -103,7 +103,7 @@ const SubscriptionDetail = () => {
         { subscriptionId },
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
             "Content-Type": "application/json"
           }
         }

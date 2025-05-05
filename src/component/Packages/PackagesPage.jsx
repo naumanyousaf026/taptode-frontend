@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from "react-router-dom";
+import NavigationBar from '../Header';
+import Header from '../Header_1';
 
 const PackagesPage = () => {
   const [packages, setPackages] = useState([]);
@@ -154,11 +156,13 @@ const PackagesPage = () => {
   }
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-white ">
+      <NavigationBar />
+      <Header />
       <div className="max-w-6xl mx-auto px-4 py-12">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-2 text-gray-800">Choose Your Package</h1>
-          <p className="text-gray-600 text-lg">Select the perfect plan for your needs</p>
+          <h1 className="text-4xl font-bold mb-2 text-[#008069]">Choose Your Package</h1>
+          <p className="text-green-500 text-lg">Select the perfect plan for your needs</p>
         </div>
         
         {error && (
@@ -217,7 +221,7 @@ const PackagesPage = () => {
                         required
                       />
                     </div>
-                    
+ 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Validity (Days)
@@ -294,13 +298,13 @@ const PackagesPage = () => {
             <p className="text-gray-500 text-lg">No packages available at the moment.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 mb-10 gap-8">
             {packages.map((pkg) => (
-              <div key={pkg._id} className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-all transform hover:-translate-y-1">
-                <div className="p-1">
-                  <div className="bg-blue-50 rounded-t-xl p-6">
-                    <h3 className="text-xl font-bold text-gray-800 mb-2">{pkg.name}</h3>
-                    <div className="text-4xl font-bold text-blue-600 flex items-baseline">
+              <div key={pkg._id} className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl ">
+                <div className=" ">
+                  <div className="bg-[#e6f4f1] rounded-t-xl p-6">
+                    <h3 className="text-xl font-bold text-[#008069] mb-2">{pkg.name}</h3>
+                    <div className="text-4xl font-bold  flex items-baseline">
                       ${pkg.price}
                       <span className="text-sm text-gray-500 ml-2 font-normal">/ {pkg.validityDays} days</span>
                     </div>
@@ -352,7 +356,7 @@ const PackagesPage = () => {
             >
                     <button
                       onClick={() => handleSubscribe(pkg)}
-                      className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                      className="w-full py-3 px-4 bg-[#008069] text-white   font-medium rounded-lg transition-colors"
                     >
                       Subscribe Now
                     </button>

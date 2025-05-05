@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import NavigationBar from "../Header";
+import Header from "../Header_1";
 
 const PurchaseForm = () => {
   const [formData, setFormData] = useState({
@@ -108,12 +110,14 @@ const PurchaseForm = () => {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen py-12">
+    <div className="bg-gray-50  ">
+      <NavigationBar />
+      <Header />
       <form
         onSubmit={handleSubmit}
-        className="max-w-md mx-auto bg-white p-8 rounded-xl shadow-md space-y-6"
+        className="max-w-md mx-auto  bg-white mt-10 mb-20 p-8 rounded-xl shadow-md space-y-6"
       >
-        <h2 className="text-2xl font-semibold mb-6 text-center text-gray-800">Purchase Package</h2>
+        <h2 className="text-2xl font-bold roboto-thin mb-6 text-center text-[#008069]">Purchase Package</h2>
         
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
@@ -122,41 +126,45 @@ const PurchaseForm = () => {
         )}
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">Select Package</label>
+          <label className="block text-sm roboto-thin font-semibold text-gray-700">Select Package</label>
+          <div className="flex items-center px-2 border-2 border-[#9CA3AF] rounded-md">
           <select
             name="packageId"
             value={formData.packageId}
             onChange={handleChange}
-            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full py-[10px] roboto-thin sm:py-2 outline-none rounded-md border-[#9CA3AF] bg-transparent"
             required
           >
-            <option value="">-- Select a Package --</option>
+            <option value="" className="roboto-thin">-- Select a Package --</option>
             {packages.map(pkg => (
-              <option key={pkg._id} value={pkg._id}>
+              <option key={pkg._id} value={pkg._id} className="roboto-thin">
                 {pkg.name} - ${pkg.price} ({pkg.validityDays} days)
                 {pkg.fetchFromGroups ? " - With System Numbers" : ""}
               </option>
             ))}
           </select>
+          </div>
         </div>
 
         {selectedPackage && (
           <div className="p-4 bg-blue-50 rounded-lg">
-            <h3 className="font-medium text-gray-800 mb-2">Package Details</h3>
+            <h3 className="font-semibold roboto-thin text-gray-800 mb-2">Package Details</h3>
+            
             <ul className="space-y-2 text-sm text-gray-600">
-              <li>• Valid for {selectedPackage.validityDays} days</li>
-              <li>• {selectedPackage.maxNumbers > 0 ? `Up to ${selectedPackage.maxNumbers} WhatsApp numbers` : 'Unlimited WhatsApp numbers'}</li>
+              <li className="roboto-thin">• Valid for {selectedPackage.validityDays} days</li>
+              <li className="roboto-thin">• {selectedPackage.maxNumbers > 0 ? `Up to ${selectedPackage.maxNumbers} WhatsApp numbers` : 'Unlimited WhatsApp numbers'}</li>
               {selectedPackage.packageType === 3 || selectedPackage.fetchFromGroups ? (
-                <li>• Access to system WhatsApp numbers</li>
+                <li className="roboto-thin">• Access to system WhatsApp numbers</li>
               ) : null}
-              <li>• Upload numbers via Excel or PDF</li>
+              <li className="roboto-thin">• Upload numbers via Excel or PDF</li>
               <li className="text-gray-500 italic mt-2">Payment requires admin verification before activation</li>
             </ul>
           </div>
         )}
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">Payment Method</label>
+          <label className="block text-sm font-semibold text-gray-700">Payment Method</label>
+          <div className="flex items-center px-2 border-2 py-2 border-[#9CA3AF] rounded-md">
           <div className="flex gap-6">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -165,9 +173,9 @@ const PurchaseForm = () => {
                 value="jazzcash"
                 checked={formData.method === "jazzcash"}
                 onChange={handleChange}
-                className="text-blue-600 focus:ring-blue-500"
+                className="text-blue-600  focus:ring-blue-500"
               />
-              <span>JazzCash</span>
+              <span className="roboto-thin">JazzCash</span>
             </label>
 
             <label className="flex items-center gap-2 cursor-pointer">
@@ -179,53 +187,60 @@ const PurchaseForm = () => {
                 onChange={handleChange}
                 className="text-blue-600 focus:ring-blue-500"
               />
-              <span>EasyPaisa</span>
+              <span className="roboto-thin">EasyPaisa</span>
             </label>
+          </div>
           </div>
         </div>
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">Mobile Number</label>
+          <label className="block text-sm roboto-thin  font-semibold  text-gray-700">Mobile Number</label>
+          <div className="flex items-center px-2 border-2 border-[#9CA3AF] rounded-md">
           <input
             type="text"
             name="mobileNumber"
             value={formData.mobileNumber}
             onChange={handleChange}
             placeholder="e.g., 03001234567"
-            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full py-[10px] sm:py-2 outline-none rounded-md border-[#9CA3AF] bg-transparent"
             required
           />
+          </div>
         </div>
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">Transaction ID</label>
+          <label className="block text-sm font-semibold roboto-thin text-gray-700">Transaction ID</label>
+          <div className="flex items-center px-2 border-2 border-[#9CA3AF] rounded-md">
           <input
             type="text"
             name="transactionId"
             value={formData.transactionId}
             onChange={handleChange}
             placeholder="Enter transaction ID from payment app"
-            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full py-[10px] sm:py-2 outline-none rounded-md border-[#9CA3AF] bg-transparent"
             required
           />
+          </div>
         </div>
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">Payer Name</label>
+          <label className="block text-sm font-semibold roboto-thin text-gray-700">Payer Name</label>
+          <div className="flex items-center px-2 border-2 border-[#9CA3AF] rounded-md">
           <input
             type="text"
             name="payerName"
             value={formData.payerName}
             onChange={handleChange}
             placeholder="Enter your full name"
-            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full py-[10px] sm:py-2 outline-none rounded-md border-[#9CA3AF] bg-transparent"
             required
           />
+          </div>
         </div>
 
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          className="w-full bg-[#008069]   text-white py-3 px-4 rounded-lg  font-medium"
         >
           Complete Purchase
         </button>

@@ -7,7 +7,7 @@ import Activity from "./component/activity/Activity";
 import Profile from "./component/me/profile";
 import "./App.css"
 import State from "./component/state/state";
-
+import PackagesPage from "./component/Packages/PackagesPage";
 const App = () => {
   return (
     <div>
@@ -19,7 +19,8 @@ const App = () => {
         <Route path="/state" element={<State />} />
         <Route path="/invite" element={<Invite />} />
         <Route path="/activity" element={<Activity />} />
-      <Route path="/profile" element={<Profile />} />            
+      <Route path="/profile" element={<Profile />} />      
+      <Route path="/package" element={<PackagesPage />} />      
       </Routes>
 
       {/* Navigation Bar */}

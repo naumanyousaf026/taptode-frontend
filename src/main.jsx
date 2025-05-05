@@ -78,14 +78,13 @@ const router = createBrowserRouter([
     ),
   },
   {
-path: "/packege",
-element: (
-  <ProtectedRoute allowedRoles={['user', 'admin']}>
-    <Packages />
-  </ProtectedRoute>
-),
+    path: "/package", // ✅ Correct spelling
+    element: (
+      <ProtectedRoute allowedRoles={['user', 'admin']}>
+        <Packages />
+      </ProtectedRoute>
+    ),
   },
-  
   {
 path:"/PurchaseForm",
 element: (
