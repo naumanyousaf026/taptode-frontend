@@ -4,6 +4,7 @@ import {
   createBrowserRouter,
   RouterProvider,
   Navigate,
+  Route,
 } from "react-router-dom";
 import "./index.css";
 import App from "./App.jsx";
@@ -30,6 +31,9 @@ import PurchaseForm from "./component/Packages/PurchaseForm.jsx";
 import MySubscriptions from "./component/Packages/MySubscriptions.jsx";
 import SubscriptionDetail from "./component/Packages/SubscriptionDetail.jsx";
 import UserWhatsappMessaging from "./component/Packages/UserWhatsappMessaging.jsx";
+import SmallPackageSendingForm from './component/Packages/SmallPckegeSendingForm.jsx';
+import MessageSendingForm from './component/Packages/MessageSendingForm';
+
 // Function to check if user is authenticated and has correct role
 const isAuthorized = (allowedRoles = ['user', 'admin']) => {
   const token = localStorage.getItem('authToken');
@@ -78,7 +82,7 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: "/package", // ✅ Correct spelling
+    path: "/package",
     element: (
       <ProtectedRoute allowedRoles={['user', 'admin']}>
         <Packages />
@@ -86,39 +90,53 @@ const router = createBrowserRouter([
     ),
   },
   {
-path:"/PurchaseForm",
-element: (
-  <ProtectedRoute allowedRoles={['user', 'admin']}>
-    <PurchaseForm />
-  </ProtectedRoute>
-),
+    path: "/PurchaseForm",
+    element: (
+      <ProtectedRoute allowedRoles={['user', 'admin']}>
+        <PurchaseForm />
+      </ProtectedRoute>
+    ),
   },
   {
-path:"/MySubscriptions",
-element: (
-  <ProtectedRoute allowedRoles={['user', 'admin']}>
-    <MySubscriptions />
-  </ProtectedRoute>
-),
+    path: "/MySubscriptions",
+    element: (
+      <ProtectedRoute allowedRoles={['user', 'admin']}>
+        <MySubscriptions />
+      </ProtectedRoute>
+    ),
   },
   {
-path:"/subscription/:subscriptionId", 
-element: (
-  <ProtectedRoute allowedRoles={['user', 'admin']}>
-    <SubscriptionDetail />
-  </ProtectedRoute>
-),
-  },
-{
-path:"/UserWhatsappMessaging",
-element: (
-  <ProtectedRoute allowedRoles={['user', 'admin']}>
-    <UserWhatsappMessaging />
-  </ProtectedRoute>
-),
+    path: "/subscription/:subscriptionId", 
+    element: (
+      <ProtectedRoute allowedRoles={['user', 'admin']}>
+        <SubscriptionDetail />
+      </ProtectedRoute>
+    ),
   },
   {
-},
+    path: "/UserWhatsappMessaging",
+    element: (
+      <ProtectedRoute allowedRoles={['user', 'admin']}>
+        <UserWhatsappMessaging />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/small-package-sending",
+    element: (
+      <ProtectedRoute checkSubscription={true} requiredPackages={[1, 2]}>
+        <SmallPackageSendingForm />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/message-sending",
+    element: (
+      <ProtectedRoute checkSubscription={true} requiredPackages={[3]} requireApproval={true}>
+        <MessageSendingForm />
+      </ProtectedRoute>
+    ),
+  },
   {
     path: "/invite",
     element: (
@@ -199,6 +217,7 @@ element: (
       </ProtectedRoute>
     ),
   },
+  
   // Catch-all route for undefined paths
   {
     path: "*",

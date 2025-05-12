@@ -9,6 +9,7 @@ const PackagesPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const navigate = useNavigate();
   
   // Form states
   const [showForm, setShowForm] = useState(false);
@@ -142,9 +143,8 @@ const PackagesPage = () => {
   };
   
   const handleSubscribe = (pkg) => {
-    // Here you would implement subscription logic
-    alert(`Subscribing to ${pkg.name} package`);
-    // Typically you would redirect to a payment page or open a payment modal
+    // Navigate to purchase form with the selected package ID
+    navigate('/PurchaseForm', { state: { packageId: pkg._id } });
   };
 
   if (loading) {
@@ -349,18 +349,14 @@ const PackagesPage = () => {
                       </li>
                     </ul>
              
-      
-                    <Link
-              to="/PurchaseForm"
-            
-            >
+                    {/* Replace Link with button that uses the navigate function */}
                     <button
                       onClick={() => handleSubscribe(pkg)}
-                      className="w-full py-3 px-4 bg-[#008069] text-white   font-medium rounded-lg transition-colors"
+                      className="w-full py-3 px-4 bg-[#008069] text-white font-medium rounded-lg transition-colors hover:bg-[#006e5a]"
                     >
                       Subscribe Now
                     </button>
-                    </Link>    
+                    
                     {isAdmin && (
                       <div className="flex justify-between mt-4 pt-4 border-t border-gray-100">
                         <button
