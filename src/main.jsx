@@ -4,7 +4,6 @@ import {
   createBrowserRouter,
   RouterProvider,
   Navigate,
-  Route,
 } from "react-router-dom";
 import "./index.css";
 import App from "./App.jsx";
@@ -32,38 +31,16 @@ import MySubscriptions from "./component/Packages/MySubscriptions.jsx";
 import SubscriptionDetail from "./component/Packages/SubscriptionDetail.jsx";
 import UserWhatsappMessaging from "./component/Packages/UserWhatsappMessaging.jsx";
 import SmallPackageSendingForm from './component/Packages/SmallPckegeSendingForm.jsx';
-import MessageSendingForm from './component/Packages/MessageSendingForm';
+import MessageSendingForm from './component/Packages/MessageSendingForm.jsx';
+import SubscriptionProtectedRoute from './component/SubscriptionProtectedRoute.jsx';
 
-// Function to check if user is authenticated and has correct role
-const isAuthorized = (allowedRoles = ['user', 'admin']) => {
-  const token = localStorage.getItem('authToken');
-  const role = localStorage.getItem('role');
-  return token && allowedRoles.includes(role);
-};
-
-// Router with protected routes and role-based access
+// Router config
 const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <Navigate to="/login" replace />,
-  },
-  {
-    path: "/register",
-    element: <Register />,
-  },
-  {
-    path: "/login",
-    element: <Login />,
-  },
-  {
-    path: "/admin/login",
-    element: <AdminLogin />,
-  },
-  {
-    path: "/successmessage",
-    element: <SuccessMessage />,
-  },
-  // Admin routes
+  { path: "/", element: <Navigate to="/login" replace /> },
+  { path: "/register", element: <Register /> },
+  { path: "/login", element: <Login /> },
+  { path: "/admin/login", element: <AdminLogin /> },
+  { path: "/successmessage", element: <SuccessMessage /> },
   {
     path: "/admin",
     element: (
@@ -72,7 +49,6 @@ const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
-  // User routes (accessible by both users and admins)
   {
     path: "/home",
     element: (
@@ -106,7 +82,7 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: "/subscription/:subscriptionId", 
+    path: "/subscription/:subscriptionId",
     element: (
       <ProtectedRoute allowedRoles={['user', 'admin']}>
         <SubscriptionDetail />
@@ -122,19 +98,19 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: "/small-package-sending",
+    path: "/message-sending",
     element: (
-      <ProtectedRoute checkSubscription={true} requiredPackages={[1, 2]}>
-        <SmallPackageSendingForm />
-      </ProtectedRoute>
+      <SubscriptionProtectedRoute requiredPackageType={3}>
+        <MessageSendingForm />
+      </SubscriptionProtectedRoute>
     ),
   },
   {
-    path: "/message-sending",
+    path: "/small-package-sending",
     element: (
-      <ProtectedRoute checkSubscription={true} requiredPackages={[3]} requireApproval={true}>
-        <MessageSendingForm />
-      </ProtectedRoute>
+      <SubscriptionProtectedRoute requiredPackageType={[1,2]}>
+        <SmallPackageSendingForm />
+      </SubscriptionProtectedRoute>
     ),
   },
   {
@@ -217,15 +193,13 @@ const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
-  
-  // Catch-all route for undefined paths
   {
     path: "*",
     element: <Navigate to="/login" replace />,
   },
 ]);
 
-// Root render with AuthProvider
+// Root render
 const rootElement = document.getElementById('root');
 const root = createRoot(rootElement);
 
